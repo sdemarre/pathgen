@@ -200,7 +200,9 @@
 				 (and first-node second-node third-node
 				      ,(make-conditions-form (getf body :conditions))))
 		  :path-modifications ,(make-path-mods-form body)))
+
 (make-extension :name :vertical-down-a
+		:category :vertical-down
 		:conditions ((:is-free-node first-node :right)
 			     (:is-free-node second-node :right))
 		:node-insertions ((:node first-node :direction :right :prev :left :next :down)
@@ -208,6 +210,7 @@
 		:path-modifications ((:node first-node :next :right)
 				     (:node second-node :prev :right)))
 (make-extension :name :vertical-down-b
+		:category :vertical-down
 		:conditions ((:is-free-node first-node :left)
 			     (:is-free-node second-node :left))
 		:node-insertions ((:node first-node :direction :left :prev :right :next :down)
@@ -215,6 +218,7 @@
 		:path-modifications ((:node first-node :next :left)
 				     (:node second-node :prev :left)))
 (make-extension :name :vertical-down-c
+		:category :vertical-down
 		:conditions ((:is-free-node second-node :left)
 			     (:is-free-node third-node :left))
 		:node-insertions ((:node second-node :direction :left :prev :right :next :down)
@@ -222,6 +226,7 @@
 		:path-modifications ((:node second-node :next :left)
 				     (:node third-node :prev :left)))
 (make-extension :name :vertical-down-d
+		:category :vertical-down
 		:conditions ((:is-free-node second-node :right)
 			     (:is-free-node third-node :right))
 		:node-insertions ((:node second-node :direction :right :prev :left :next :down)
@@ -230,6 +235,7 @@
 				     (:node third-node :prev :right)))
 
 (make-extension :name :vertical-up-a
+		:category :vertical-up
 		:conditions ((:is-free-node second-node :right)
 			     (:is-free-node third-node :right))
 		:node-insertions ((:node second-node :direction :right :prev :left :next :up)
@@ -237,6 +243,7 @@
 		:path-modifications ((:node second-node :next :right)
 				     (:node third-node :prev :right)))
 (make-extension :name :vertical-up-b
+		:category :vertical-up
 		:conditions ((:is-free-node second-node :left)
 			     (:is-free-node third-node :left))
 		:node-insertions ((:node second-node :direction :left :prev :right :next :up)
@@ -244,6 +251,7 @@
 		:path-modifications ((:node second-node :next :left)
 				     (:node third-node :prev :left)))
 (make-extension :name :vertical-up-c
+		:category :vertical-up
 		:conditions ((:is-free-node first-node :left)
 			     (:is-free-node second-node :left))
 		:node-insertions ((:node first-node :direction :left :prev :right :next :up)
@@ -251,6 +259,7 @@
 		:path-modifications ((:node first-node :next :left)
 				     (:node second-node :prev :left)))
 (make-extension :name :vertical-up-d
+		:category :vertical-up
 		:conditions ((:is-free-node first-node :right)
 			     (:is-free-node second-node :right))
 		:node-insertions ((:node first-node :direction :right :prev :left :next :up)
@@ -261,6 +270,7 @@
 
 
 (make-extension :name :horizontal-right-a
+		:category :horizontal-right
 		:conditions ((:is-free-node first-node :up)
 			     (:is-free-node second-node :up))
 		:node-insertions ((:node first-node :direction :up :prev :down :next :right)
@@ -268,6 +278,7 @@
 		:path-modifications ((:node first-node :next :up)
 				     (:node second-node :prev :up)))
 (make-extension :name :horizontal-right-b
+		:category :horizontal-right
 		:conditions ((:is-free-node second-node :up)
 			     (:is-free-node third-node :up))
 		:node-insertions ((:node second-node :direction :up :prev :down :next :right)
@@ -275,6 +286,7 @@
 		:path-modifications ((:node second-node :next :up)
 				     (:node third-node :prev :up)))
 (make-extension :name :horizontal-right-c
+		:category :horizontal-right
 		:conditions ((:is-free-node first-node :down)
 			     (:is-free-node second-node :down))
 		:node-insertions ((:node first-node :direction :down :prev :up :next :right)
@@ -282,6 +294,7 @@
 		:path-modifications ((:node first-node :next :down)
 				     (:node second-node :prev :left)))
 (make-extension :name :horizontal-right-d
+		:category :horizontal-right
 		:conditions ((:is-free-node second-node :down)
 			     (:is-free-node third-node :down))
 		:node-insertions ((:node second-node :direction :down :prev :up :next :right)
@@ -290,6 +303,7 @@
 				     (:node third-node :prev :left)))
 
 (make-extension :name :horizontal-left-a
+		:category :horizontal-left
 		:conditions ((:is-free-node second-node :up)
 			     (:is-free-node third-node :up))
 		:node-insertions ((:node second-node :direction :up :prev :right :next :up)
@@ -297,6 +311,7 @@
 		:path-modifications ((:node second-node :next :up)
 				     (:node third-node :prev :up)))
 (make-extension :name :horizontal-left-b
+		:category :horizontal-left
 		:conditions ((:is-free-node first-node :up)
 			     (:is-free-node second-node :up))
 		:node-insertions ((:node first-node :direction :up :prev :down :next :left)
@@ -304,6 +319,7 @@
 		:path-modifications ((:node first-node :next :up)
 				     (:node second-node :prev :up)))
 (make-extension :name :horizontal-left-c
+		:category :horizontal-left
 		:conditions ((:is-free-node second-node :down)
 			     (:is-free-node third-node :down))
 		:node-insertions ((:node second-node :direction :down :prev :up :next :left)
@@ -311,6 +327,7 @@
 		:path-modifications ((:node second-node :next :down)
 				     (:node third-node :prev :down)))
 (make-extension :name :horizontal-left-d
+		:category :horizontal-left
 		:conditions ((:is-free-node first-node :down)
 			     (:is-free-node second-node :down))
 		:node-insertions ((:node first-node :direction :down :prev :up :next :left)
@@ -320,6 +337,7 @@
 
 
 (make-extension :name :down-right
+		:category :down-right
 		:conditions ((:is-free-node first-node :right))
 		:node-deletions ((:node second-node))
 		:node-insertions ((:node first-node :direction :right :prev :left :next :down))
@@ -327,12 +345,14 @@
 				     (:node third-node :prev :up)))
 
 (make-extension :name :up-right
+		:category :up-right
 		:conditions ((:is-free-node first-node :right))
 		:node-deletions ((:node second-node))
 		:node-insertions ((:node first-node :direction :right :prev :left :next :up))
 		:path-modifications ((:node first-node :next :right)
 				     (:node third-node :prev :down)))
 (make-extension :name :up-left
+		:category :up-left
 		:conditions ((:is-free-node first-node :left))
 		:node-deletions ((:node second-node))
 		:node-insertions ((:node first-node :direction :left :prev :right :next :up))
@@ -340,6 +360,7 @@
 				     (:node third-node :prev :down)))
 
 (make-extension :name :down-left
+		:category :down-left
 		:conditions ((:is-free-node first-node :left))
 		:node-deletions ((:node second-node))
 		:node-insertions ((:node first-node :direction :left :prev :right :next :down))
@@ -347,6 +368,7 @@
 				     (:node third-node :prev :up)))
 
 (make-extension :name :right-up
+		:category :right-up
 		:conditions ((:is-free-node first-node :up))
 		:node-deletions ((:node second-node))
 		:node-insertions ((:node first-node :direction :up :prev :down :next :right))
@@ -354,6 +376,7 @@
 				     (:node third-node :prev :left)))
 
 (make-extension :name :right-down
+		:category :right-down
 		:conditions ((:is-free-node first-node :down))
 		:node-deletions ((:node second-node))
 		:node-insertions ((:node first-node :direction :down :prev :up :next :right))
@@ -361,6 +384,7 @@
 				     (:node third-node :prev :left)))
 
 (make-extension :name :left-up
+		:category :left-up
 		:conditions ((:is-free-node first-node :up))
 		:node-deletions ((:node second-node))
 		:node-insertions ((:node first-node :direction :up :prev :down :next :left))
@@ -368,6 +392,7 @@
 				     (:node third-node :prev :left)))
 
 (make-extension :name :left-down
+		:category :left-down
 		:conditions ((:is-free-node first-node :down))
 		:node-deletions ((:node second-node))
 		:node-insertions ((:node first-node :direction :down :prev :up :next :left))
