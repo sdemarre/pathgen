@@ -24,20 +24,6 @@
    (height :initarg :height :initform 10 :accessor height)
    (grid-nodes :initform nil :accessor grid-nodes)))
 
-(defmacro for-all-rows ((grid row) &body body)
-  `(iter (for ,row :from 0 :below (height ,grid))
-	 ,@body))
-(defmacro for-all-columns ((grid column) &body body)
-  `(iter (for ,column :from 0 :below (width ,grid))
-	 ,@body))
-(defmacro for-all-nodes ((grid node) &body body)
-  (let ((row (gensym "row"))
-	(column (gensym "column")))
-    `(for-all-rows (,grid ,row)
-       (for-all-columns (,grid ,column)
-	 (let ((,node (grid-node ,grid ,row ,column)))
-	   ,@body)))))
-
 (defmethod grid-node ((grid grid) row column)
   (aref (grid-nodes grid) row column))
 (defsetf grid-node (grid row column) (new-value)
@@ -89,7 +75,6 @@
   (init-rev-grid-directions grid)
   grid)
 
-
 (defun direction-rep (direction)
   (case direction
     (:up "^")
@@ -137,23 +122,84 @@
 	     (if (< (row node2) (row node3)) :right-down :right-up)
 	     (if (< (row node2) (row node3)) :left-down :left-up)))))
 (defun find-possible-extensions (node)
-  (let ((next-node (next-node node))
-	(previous-node (previous-node node)))
-    (when (and next-node previous-node)
-      (case (three-node-category previous-node node next-node)
-	(:horizontal-left)
-	(:horizontal-right)
-	(:vertical-up)
-	(:vertical-down)
-	(:down-righ)
-	(:down-left)
-	(:up-right)
-	(:up-left)
-	(:right-down)
-	(:right-up)
-	(:left-down)
-	(:left-up)
-	(otherwise (error "unknown three node category"))))))
+  (let ((third-node (next-node node))
+	(first-node (previous-node node))
+	(second-node node))
+    (when (and first-node third-node)
+      (case (three-node-category first-node second-node third-node)
+	(:horizontal-left (list (make-horizontal-left-extension
+				  :name :horizontal-left-a
+				  :extension-direction :up
+				  :nodes (first-node second-node))
+				(make-horizontal-left-extension
+				  :name :horizontal-left-b
+				  :extension-direction :up
+				  :nodes (second-node third-node))
+				(make-horizontal-left-extension
+				  :name :horizontal-left-c
+				  :extension-direction :down
+				  :nodes (first-node second-node))
+				(make-horizontal-left-extension
+				  :name :horizontal-left-d
+				  :extension-direction :down
+				  :nodes (second-node third-node))))
+	(:horizontal-right (list (make-horizontal-right-extension
+				   :name :horizontal-right-a
+				   :extension-direction :up
+				   :nodes (first-node second-node))
+				 (make-horizontal-right-extension
+				   :name :horizontal-right-b
+				   :extension-direction :up
+				   :nodes (second-node third-node))
+				 (make-horizontal-right-extension
+				   :name :horizontal-right-c
+				   :extension-direction :down
+				   :nodes (first-node second-node))
+				 (make-horizontal-right-extension
+				   :name :horizontal-right-d
+				   :extension-direction :down
+				   :nodes (second-node third-node))))
+	(:vertical-up (list (make-vertical-up-extension
+			      :name :vertical-up-a
+			      :extension-direction :left
+			      :nodes (first-node second-node))
+			    (make-vertical-up-extension
+			      :name :vertical-up-b
+			      :extension-direction :left
+			      :nodes (second-node third-node))
+			    (make-vertical-up-extension
+			      :name :vertical-up-c
+			      :extension-direction :right
+			      :nodes (first-node second-node))
+			    (make-vertical-up-extension
+			      :name :vertical-up-d
+			      :extension-direction :right
+			      :nodes (second-node third-node))))
+	(:vertical-down (list (make-vertical-down-extension
+				:name :vertical-down-a
+				:extension-direction :left
+				:nodes (first-node second-node))
+			      (make-vertical-down-extension
+				:name :vertical-down-b
+				:extension-direction :left
+				:nodes (second-node third-node))
+			      (make-vertical-down-extension
+				:name :vertical-down-c
+				:extension-direction :right
+				:nodes (first-node second-node))
+			      (make-vertical-down-extension
+				:name :vertical-down-d
+				:extension-direction :right
+				:nodes (second-node third-node))))
+	(:down-right (list (make-corner-extension :name :down-right :directions (:down :right))))
+	(:down-left (list (make-corner-extension :name :down-left :directions (:down :left))))
+	(:up-right (list (make-corner-extension :name :up-right :directions (:up :right))))
+	(:up-left (list (make-corner-extension :name :up-left :directions (:up :left))))
+	(:right-down (list (make-corner-extension :name :right-down :directions (:right :down))))
+	(:right-up (list (make-corner-extension :name :right-up :directions (:right :up))))
+	(:left-down (list (make-corner-extension :name :left-down :directions (:left :down))))
+	(:left-up (list (make-corner-extension :name :left-up :directions (:left :up))))
+	(otherwise (error "unknown three second-node category"))))))
 (defun next-node (node)
   (let ((next-node-direction (direction node)))
     (when (not (eq :none next-node-direction))
@@ -162,14 +208,10 @@
   (let ((previous-node-direction (rev-direction node)))
     (when (not (eq :none previous-node-direction))
       (neighbouring-node node previous-node-direction))))
-(defun try-to-extend-path (grid)
-  (let ((node (find-random-node-on-path grid)))
-   (let ((possible-extensions (find-possible-extensions node)))
-     ())))
-
 
 (defclass extension ()
   ((name :initarg :name :accessor name)
+   (category :initarg :category :accessor category)
    (first-node :initarg :first-node :accessor first-node)
    (second-node :initarg :second-node :accessor second-node)
    (third-node :initarg :third-node :accessor third-node)
@@ -188,220 +230,74 @@
 		(collect `(and
 			   (can-extend-in-direction-p ,node-name ,direction)
 			   (node-available-p (neighbouring-node ,node-name ,direction)))))))
+(defun make-path-modification-form (form)
+  (destructuring-bind (node-tag node-name path-direction direction) form
+    (declare (ignorable node-tag))
+    (case path-direction
+      (:next `(setf (direction ,node-name) ,direction))
+      (:prev `(setf (rev-direction ,node-name) ,direction))
+      (otherwise (error "unknown direction [~a] in path modification form ~a" direction form)))))
+(defun make-path-modification-forms (forms)
+  (iter (for form in forms)
+	(collect (make-path-modification-form form))))
+(defun make-node-insertion-form (form)
+  (destructuring-bind (node-tag node-name direction-tag direction prev-tag prev-direction next-tag next-direction) form
+    (declare (ignorable node-tag direction-tag prev-tag next-tag))
+    (let ((new-node-name (gensym "new-node")))
+      `(let ((,new-node-name (neighbouring-node ,node-name ,direction)))
+	 (setf (direction ,new-node-name) ,next-direction)
+	 (setf (rev-direction ,new-node-name) ,prev-direction)))))
+(defun make-node-insertion-forms (forms)
+  (iter (for node-insertion-form in forms)
+	(collect (make-node-insertion-form node-insertion-form))))
+(defun make-node-deletion-form (form)
+  (destructuring-bind (node-tag node-name) form
+    (declare (ignorable node-tag))
+    `((setf (direction ,node-name) :none)
+      (setf (rev-direction ,node-name) :none))))
+(defun make-node-deletion-forms (forms)
+  (iter (for node-deletion-form in forms)
+	(appending (make-node-deletion-form node-deletion-form))))
 (defun make-path-mods-form (specs)
   (iter (for data on specs by 'cddr)
 	(destructuring-bind (key forms &rest rest) data
+	  (declare (ignorable rest))
 	  (case key
-	    (:node-deletions (append (make-node-deletion-forms forms)))
-	    (:node-insertions (append (make-node-insertion-forms forms)))
-	    (:path-modifications (append (make-path-modification-forms forms)))
+	    (:node-deletions (appending (make-node-deletion-forms forms)))
+	    (:node-insertions (appending (make-node-insertion-forms forms)))
+	    (:path-modifications (appending (make-path-modification-forms forms)))
 	    ((:name :category :conditions))
 	    (otherwise (error "unknown path modification operation ~a" key))))))
-(defmacro make-extension (&body body)
-  `(make-instance 'extension
-		  :name ,(getf body :name)
-		  :first-node first-node
-		  :second-node second-node
-		  :third-node third-node
-		  :conditions #'(lambda ()
-				  (and first-node second-node third-node
-				       ,(make-conditions-form (getf body :conditions))))
-		  :path-modifications ,(make-path-mods-form body)))
-'(
-  (make-extension :name :vertical-down-a
-		  :category :vertical-down
-		  :conditions ((:is-free-node first-node :right)
-			       (:is-free-node second-node :right))
-		  :node-insertions ((:node first-node :direction :right :prev :left :next :down)
-				    (:node second-node :direction :right :prev :up :next :left))
-		  :path-modifications ((:node first-node :next :right)
-				       (:node second-node :prev :right)))
- (make-extension :name :vertical-down-b
-		 :category :vertical-down
-		 :conditions ((:is-free-node first-node :left)
-			      (:is-free-node second-node :left))
-		 :node-insertions ((:node first-node :direction :left :prev :right :next :down)
-				   (:node second-node :direction :left :prev :up :next :right))
-		 :path-modifications ((:node first-node :next :left)
-				      (:node second-node :prev :left)))
- (make-extension :name :vertical-down-c
-		 :category :vertical-down
-		 :conditions ((:is-free-node second-node :left)
-			      (:is-free-node third-node :left))
-		 :node-insertions ((:node second-node :direction :left :prev :right :next :down)
-				   (:node third-node :direction :left :prev :up :next :right))
-		 :path-modifications ((:node second-node :next :left)
-				      (:node third-node :prev :left)))
- (make-extension :name :vertical-down-d
-		 :category :vertical-down
-		 :conditions ((:is-free-node second-node :right)
-			      (:is-free-node third-node :right))
-		 :node-insertions ((:node second-node :direction :right :prev :left :next :down)
-				   (:node third-node :direction :right :prev :up :next :left))
-		 :path-modifications ((:node second-node :next :right)
-				      (:node third-node :prev :right)))
 
- (make-extension :name :vertical-up-a
-		 :category :vertical-up
-		 :conditions ((:is-free-node second-node :right)
-			      (:is-free-node third-node :right))
-		 :node-insertions ((:node second-node :direction :right :prev :left :next :up)
-				   (:node third-node :direction :right :prev :down :next :left))
-		 :path-modifications ((:node second-node :next :right)
-				      (:node third-node :prev :right)))
- (make-extension :name :vertical-up-b
-		 :category :vertical-up
-		 :conditions ((:is-free-node second-node :left)
-			      (:is-free-node third-node :left))
-		 :node-insertions ((:node second-node :direction :left :prev :right :next :up)
-				   (:node third-node :direction :left :prev :down :next :right))
-		 :path-modifications ((:node second-node :next :left)
-				      (:node third-node :prev :left)))
- (make-extension :name :vertical-up-c
-		 :category :vertical-up
-		 :conditions ((:is-free-node first-node :left)
-			      (:is-free-node second-node :left))
-		 :node-insertions ((:node first-node :direction :left :prev :right :next :up)
-				   (:node second-node :direction :left :prev :down :next :right))
-		 :path-modifications ((:node first-node :next :left)
-				      (:node second-node :prev :left)))
- (make-extension :name :vertical-up-d
-		 :category :vertical-up
-		 :conditions ((:is-free-node first-node :right)
-			      (:is-free-node second-node :right))
-		 :node-insertions ((:node first-node :direction :right :prev :left :next :up)
-				   (:node second-node :direction :right :prev :down :next :left))
-		 :path-modifications ((:node first-node :next :right)
-				      (:node second-node :prev :right)))
+(defun do-random-extension (grid)
+  (let ((node (find-random-node-on-path grid)))
+    (when node
+      (let ((candidate-extensions (find-possible-extensions node)))
+	(when candidate-extensions
+	  (let ((possible-extensions (remove-if-not #'(lambda (extension) (funcall (conditions extension))) candidate-extensions)))
+	    (when possible-extensions
+	      (let ((extension (elt possible-extensions (random (length possible-extensions)))))
+		(funcall (node-modifications extension))))))))))
+
+(defun path-length (grid)
+  (let ((node (grid-node grid 0 0)))
+    (iter (while (not (eq :none (direction node))))
+	  (sum 1)
+	  (setf node (next-node node)))))
+
+(defun path-has-loop-p (grid)
+  (let ((node (grid-node grid 0 0))
+	(length 0))
+    (iter (while (and (not (eq :none (direction node)))
+		      (< length (1+ (* (width grid) (height grid))))))
+	  (incf length)
+	  (setf node (next-node node)))
+    (> length (* (width grid) (height grid)))))
 
 
-
- (make-extension :name :horizontal-right-a
-		 :category :horizontal-right
-		 :conditions ((:is-free-node first-node :up)
-			      (:is-free-node second-node :up))
-		 :node-insertions ((:node first-node :direction :up :prev :down :next :right)
-				   (:node second-node :direction :up :prev :left :next :down))
-		 :path-modifications ((:node first-node :next :up)
-				      (:node second-node :prev :up)))
- (make-extension :name :horizontal-right-b
-		 :category :horizontal-right
-		 :conditions ((:is-free-node second-node :up)
-			      (:is-free-node third-node :up))
-		 :node-insertions ((:node second-node :direction :up :prev :down :next :right)
-				   (:node third-node :direction :up :prev :left :next :down))
-		 :path-modifications ((:node second-node :next :up)
-				      (:node third-node :prev :up)))
- (make-extension :name :horizontal-right-c
-		 :category :horizontal-right
-		 :conditions ((:is-free-node first-node :down)
-			      (:is-free-node second-node :down))
-		 :node-insertions ((:node first-node :direction :down :prev :up :next :right)
-				   (:node second-node :direction :down :prev :left :next :up))
-		 :path-modifications ((:node first-node :next :down)
-				      (:node second-node :prev :left)))
- (make-extension :name :horizontal-right-d
-		 :category :horizontal-right
-		 :conditions ((:is-free-node second-node :down)
-			      (:is-free-node third-node :down))
-		 :node-insertions ((:node second-node :direction :down :prev :up :next :right)
-				   (:node third-node :direction :down :prev :left :next :up))
-		 :path-modifications ((:node second-node :next :right)
-				      (:node third-node :prev :left)))
-
- (make-extension :name :horizontal-left-a
-		 :category :horizontal-left
-		 :conditions ((:is-free-node second-node :up)
-			      (:is-free-node third-node :up))
-		 :node-insertions ((:node second-node :direction :up :prev :right :next :up)
-				   (:node third-node :direction :up :prev :right :next :down))
-		 :path-modifications ((:node second-node :next :up)
-				      (:node third-node :prev :up)))
- (make-extension :name :horizontal-left-b
-		 :category :horizontal-left
-		 :conditions ((:is-free-node first-node :up)
-			      (:is-free-node second-node :up))
-		 :node-insertions ((:node first-node :direction :up :prev :down :next :left)
-				   (:node second-node :direction :up :prev :right :next :down))
-		 :path-modifications ((:node first-node :next :up)
-				      (:node second-node :prev :up)))
- (make-extension :name :horizontal-left-c
-		 :category :horizontal-left
-		 :conditions ((:is-free-node second-node :down)
-			      (:is-free-node third-node :down))
-		 :node-insertions ((:node second-node :direction :down :prev :up :next :left)
-				   (:node third-node :direction :down :prev :right :next :up))
-		 :path-modifications ((:node second-node :next :down)
-				      (:node third-node :prev :down)))
- (make-extension :name :horizontal-left-d
-		 :category :horizontal-left
-		 :conditions ((:is-free-node first-node :down)
-			      (:is-free-node second-node :down))
-		 :node-insertions ((:node first-node :direction :down :prev :up :next :left)
-				   (:node second-node :direction :down :prev :right :next :up))
-		 :path-modifications ((:node first-node :next :down)
-				      (:node second-node :prev :down)))
-
-
- (make-extension :name :down-right
-		 :category :down-right
-		 :conditions ((:is-free-node first-node :right))
-		 :node-deletions ((:node second-node))
-		 :node-insertions ((:node first-node :direction :right :prev :left :next :down))
-		 :path-modifications ((:node first-node :next :right)
-				      (:node third-node :prev :up)))
-
- (make-extension :name :up-right
-		 :category :up-right
-		 :conditions ((:is-free-node first-node :right))
-		 :node-deletions ((:node second-node))
-		 :node-insertions ((:node first-node :direction :right :prev :left :next :up))
-		 :path-modifications ((:node first-node :next :right)
-				      (:node third-node :prev :down)))
- (make-extension :name :up-left
-		 :category :up-left
-		 :conditions ((:is-free-node first-node :left))
-		 :node-deletions ((:node second-node))
-		 :node-insertions ((:node first-node :direction :left :prev :right :next :up))
-		 :path-modifications ((:node first-node :next :left)
-				      (:node third-node :prev :down)))
-
- (make-extension :name :down-left
-		 :category :down-left
-		 :conditions ((:is-free-node first-node :left))
-		 :node-deletions ((:node second-node))
-		 :node-insertions ((:node first-node :direction :left :prev :right :next :down))
-		 :path-modifications ((:node first-node :next :left)
-				      (:node third-node :prev :up)))
-
- (make-extension :name :right-up
-		 :category :right-up
-		 :conditions ((:is-free-node first-node :up))
-		 :node-deletions ((:node second-node))
-		 :node-insertions ((:node first-node :direction :up :prev :down :next :right))
-		 :path-modifications ((:node first-node :next :up)
-				      (:node third-node :prev :left)))
-
- (make-extension :name :right-down
-		 :category :right-down
-		 :conditions ((:is-free-node first-node :down))
-		 :node-deletions ((:node second-node))
-		 :node-insertions ((:node first-node :direction :down :prev :up :next :right))
-		 :path-modifications ((:node first-node :next :down)
-				      (:node third-node :prev :left)))
-
- (make-extension :name :left-up
-		 :category :left-up
-		 :conditions ((:is-free-node first-node :up))
-		 :node-deletions ((:node second-node))
-		 :node-insertions ((:node first-node :direction :up :prev :down :next :left))
-		 :path-modifications ((:node first-node :next :up)
-				      (:node third-node :prev :left)))
-
- (make-extension :name :left-down
-		 :category :left-down
-		 :conditions ((:is-free-node first-node :down))
-		 :node-deletions ((:node second-node))
-		 :node-insertions ((:node first-node :direction :down :prev :up :next :left))
-		 :path-modifications ((:node first-node :next :down)
-				      (:node third-node :prev :right))))
+(defun copy-grid (grid)
+  (let ((new-grid (make-instance 'grid :width (width grid) :height (height grid))))
+    (for-all-nodes (grid node)
+      (setf (direction (grid-node new-grid (row node) (column node))) (direction node))
+      (setf (rev-direction (grid-node new-grid (row node) (column node))) (rev-direction node)))
+    new-grid))

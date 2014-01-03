@@ -7,5 +7,6 @@
   :license "Specify license here"
   :depends-on (:iterate)
   :components ((:file "package")
-               (:file "pathgen")))
+	       (:file "macros")
+               (:file "pathgen" :depends-on ("macros"))))
 
