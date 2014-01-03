@@ -301,3 +301,31 @@
       (setf (direction (grid-node new-grid (row node) (column node))) (direction node))
       (setf (rev-direction (grid-node new-grid (row node) (column node))) (rev-direction node)))
     new-grid))
+
+(defun make-ps-output (grid stream)
+  (format stream "%!
+/cm {1 2.54 div 72 mul} def
+/mm {0.1 cm mul} def
+/slength {1 mm mul} def
+/r {slength 0 rlineto} def
+/l {slength -1 mul 0 rlineto} def
+/d {0 slength rlineto} def
+/u {0 -1 slength mul rlineto} def
+newpath
+0.5 cm mul dup moveto
+")
+  (let ((node (grid-node grid 0 0)))
+    (iter (while (not (eq :none (direction node))))
+	  (case (direction node)
+	    (:left (format stream "l "))
+	    (:right (format stream "r "))
+	    (:up (format stream "u "))
+	    (:down (format stream "d ")))
+	  (setf node (next-node node))))
+  (format stream "stroke
+showpage~%"))
+
+
+(defun make-ps-file (ps-file-name grid)
+  (with-open-file (s ps-file-name :direction :output :if-exists :supersede)
+    (make-ps grid s)))

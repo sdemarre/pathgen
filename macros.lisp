@@ -14,6 +14,14 @@
 	 (let ((,node (grid-node ,grid ,row ,column)))
 	   ,@body)))))
 
+(defun invert-direction (direction)
+  (case direction
+    (:up :down)
+    (:left :right)
+    (:right :left)
+    (:down :up)
+    (otherwise :none)))
+
 (defmacro make-extension (&body body)
   `(make-instance 'extension
 		  :name ,(getf body :name)
