@@ -22,6 +22,52 @@
     (:down :up)
     (otherwise :none)))
 
+(defun make-conditions-form (conditions)
+  `(and ,@(iter (for (condition-type node-name direction) in conditions)
+		(when (not (eq :is-free-node condition-type))
+		  (error "unhandled condition type ~a" condition-type))
+		(collect `(and
+			   (can-extend-in-direction-p ,node-name ,direction)
+			   (node-available-p (neighbouring-node ,node-name ,direction)))))))
+(defun make-path-modification-form (form)
+  (destructuring-bind (node-tag node-name path-direction direction) form
+    (declare (ignorable node-tag))
+    (case path-direction
+      (:next `(setf (direction ,node-name) ,direction))
+      (:prev `(setf (rev-direction ,node-name) ,direction))
+      (otherwise (error "unknown direction [~a] in path modification form ~a" direction form)))))
+(defun make-path-modification-forms (forms)
+  (iter (for form in forms)
+	(collect (make-path-modification-form form))))
+(defun make-node-insertion-form (form)
+  (destructuring-bind (node-tag node-name direction-tag direction prev-tag prev-direction next-tag next-direction) form
+    (declare (ignorable node-tag direction-tag prev-tag next-tag))
+    (let ((new-node-name (gensym "new-node")))
+      `(let ((,new-node-name (neighbouring-node ,node-name ,direction)))
+	 (setf (direction ,new-node-name) ,next-direction)
+	 (setf (rev-direction ,new-node-name) ,prev-direction)))))
+(defun make-node-insertion-forms (forms)
+  (iter (for node-insertion-form in forms)
+	(collect (make-node-insertion-form node-insertion-form))))
+(defun make-node-deletion-form (form)
+  (destructuring-bind (node-tag node-name) form
+    (declare (ignorable node-tag))
+    `((setf (direction ,node-name) :none)
+      (setf (rev-direction ,node-name) :none))))
+(defun make-node-deletion-forms (forms)
+  (iter (for node-deletion-form in forms)
+	(appending (make-node-deletion-form node-deletion-form))))
+(defun make-path-mods-form (specs)
+  (iter (for data on specs by 'cddr)
+	(destructuring-bind (key forms &rest rest) data
+	  (declare (ignorable rest))
+	  (case key
+	    (:node-deletions (appending (make-node-deletion-forms forms)))
+	    (:node-insertions (appending (make-node-insertion-forms forms)))
+	    (:path-modifications (appending (make-path-modification-forms forms)))
+	    ((:name :category :conditions))
+	    (otherwise (error "unknown path modification operation ~a" key))))))
+
 (defmacro make-extension (&body body)
   `(make-instance 'extension
 		  :name ,(getf body :name)

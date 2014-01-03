@@ -223,51 +223,6 @@
 (defun node-available-p (node)
   (and (eq :none (direction node))
        (eq :none (rev-direction node))))
-(defun make-conditions-form (conditions)
-  `(and ,@(iter (for (condition-type node-name direction) in conditions)
-		(when (not (eq :is-free-node condition-type))
-		  (error "unhandled condition type ~a" condition-type))
-		(collect `(and
-			   (can-extend-in-direction-p ,node-name ,direction)
-			   (node-available-p (neighbouring-node ,node-name ,direction)))))))
-(defun make-path-modification-form (form)
-  (destructuring-bind (node-tag node-name path-direction direction) form
-    (declare (ignorable node-tag))
-    (case path-direction
-      (:next `(setf (direction ,node-name) ,direction))
-      (:prev `(setf (rev-direction ,node-name) ,direction))
-      (otherwise (error "unknown direction [~a] in path modification form ~a" direction form)))))
-(defun make-path-modification-forms (forms)
-  (iter (for form in forms)
-	(collect (make-path-modification-form form))))
-(defun make-node-insertion-form (form)
-  (destructuring-bind (node-tag node-name direction-tag direction prev-tag prev-direction next-tag next-direction) form
-    (declare (ignorable node-tag direction-tag prev-tag next-tag))
-    (let ((new-node-name (gensym "new-node")))
-      `(let ((,new-node-name (neighbouring-node ,node-name ,direction)))
-	 (setf (direction ,new-node-name) ,next-direction)
-	 (setf (rev-direction ,new-node-name) ,prev-direction)))))
-(defun make-node-insertion-forms (forms)
-  (iter (for node-insertion-form in forms)
-	(collect (make-node-insertion-form node-insertion-form))))
-(defun make-node-deletion-form (form)
-  (destructuring-bind (node-tag node-name) form
-    (declare (ignorable node-tag))
-    `((setf (direction ,node-name) :none)
-      (setf (rev-direction ,node-name) :none))))
-(defun make-node-deletion-forms (forms)
-  (iter (for node-deletion-form in forms)
-	(appending (make-node-deletion-form node-deletion-form))))
-(defun make-path-mods-form (specs)
-  (iter (for data on specs by 'cddr)
-	(destructuring-bind (key forms &rest rest) data
-	  (declare (ignorable rest))
-	  (case key
-	    (:node-deletions (appending (make-node-deletion-forms forms)))
-	    (:node-insertions (appending (make-node-insertion-forms forms)))
-	    (:path-modifications (appending (make-path-modification-forms forms)))
-	    ((:name :category :conditions))
-	    (otherwise (error "unknown path modification operation ~a" key))))))
 
 (defun do-random-extension (grid)
   (let ((node (find-random-node-on-path grid)))
@@ -306,7 +261,7 @@
   (format stream "%!
 /cm {1 2.54 div 72 mul} def
 /mm {0.1 cm mul} def
-/slength {1 mm mul} def
+/slength {0.5 mm mul} def
 /r {slength 0 rlineto} def
 /l {slength -1 mul 0 rlineto} def
 /d {0 slength rlineto} def
@@ -314,18 +269,24 @@
 newpath
 0.5 cm mul dup moveto
 ")
-  (let ((node (grid-node grid 0 0)))
+  (let ((node (grid-node grid 0 0))
+	(cmd-count 0))
     (iter (while (not (eq :none (direction node))))
 	  (case (direction node)
 	    (:left (format stream "l "))
 	    (:right (format stream "r "))
 	    (:up (format stream "u "))
 	    (:down (format stream "d ")))
+	  (incf cmd-count)
+	  (when (> cmd-count 50)
+	    (setf cmd-count 0)
+	    (format stream "~%"))
 	  (setf node (next-node node))))
   (format stream "stroke
 showpage~%"))
 
-
 (defun make-ps-file (ps-file-name grid)
   (with-open-file (s ps-file-name :direction :output :if-exists :supersede)
-    (make-ps grid s)))
+    (make-ps-output grid s)))
+(defun max-path-length (grid)
+  (* (width grid) (height grid)))
